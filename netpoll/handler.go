@@ -88,7 +88,7 @@ type context struct {
 	writing sync.Mutex
 	upgrade bool
 	conn    net.Conn
-	pool    linear_ac.Allocator
+	pool    *linear_ac.Allocator
 	buffer  []byte
 }
 
@@ -119,7 +119,7 @@ func (h *DataHandler) Upgrade(conn net.Conn) (Context, error) {
 	if h.NoShared {
 		ctx.buffer = make([]byte, h.BufferSize)
 	} else {
-		ctx.pool = *linear_ac.NewLinearAc()
+		ctx.pool = linear_ac.BindNew()
 	}
 	return ctx, nil
 }
