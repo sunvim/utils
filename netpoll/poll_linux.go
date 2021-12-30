@@ -1,3 +1,6 @@
+// Copyright (c) 2020 Meng Huang (mhboy@outlook.com)
+// This package is licensed under a MIT license that can be found in the LICENSE file.
+
 //go:build linux
 // +build linux
 
@@ -32,7 +35,7 @@ func Create() (*Poll, error) {
 	}
 	return &Poll{
 		fd:     fd,
-		events: make([]syscall.EpollEvent, 4096),
+		events: make([]syscall.EpollEvent, 1024),
 		pool: &sync.Pool{New: func() interface{} {
 			return syscall.EpollEvent{}
 		}},

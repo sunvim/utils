@@ -1,11 +1,13 @@
+// Copyright (c) 2020 Meng Huang (mhboy@outlook.com)
+// This package is licensed under a MIT license that can be found in the LICENSE file.
+
 package netpoll
 
 import (
 	"errors"
+	"github.com/hslam/buffer"
 	"net"
 	"sync"
-
-	"github.com/sunvim/utils/linear_ac"
 )
 
 // ErrHandlerFunc is the error when the HandlerFunc is nil
@@ -88,7 +90,7 @@ type context struct {
 	writing sync.Mutex
 	upgrade bool
 	conn    net.Conn
-	pool    *linear_ac.Allocator
+	pool    *buffer.Pool
 	buffer  []byte
 }
 
@@ -119,7 +121,7 @@ func (h *DataHandler) Upgrade(conn net.Conn) (Context, error) {
 	if h.NoShared {
 		ctx.buffer = make([]byte, h.BufferSize)
 	} else {
-		ctx.pool = linear_ac.BindNew()
+		ctx.pool = buffer.AssignPool(h.BufferSize)
 	}
 	return ctx, nil
 }
@@ -135,7 +137,7 @@ func (h *DataHandler) Serve(ctx Context) error {
 	if h.NoShared {
 		buf = c.buffer
 	} else {
-		c.pool.NewSlice(&buf, 0, h.BufferSize)
+		buf = c.pool.GetBuffer(h.BufferSize)
 	}
 	if c.upgrade {
 		c.reading.Lock()
@@ -146,7 +148,7 @@ func (h *DataHandler) Serve(ctx Context) error {
 	}
 	if err != nil {
 		if !h.NoShared {
-			c.pool.Release()
+			c.pool.PutBuffer(buf)
 		}
 		return err
 	}
@@ -164,7 +166,7 @@ func (h *DataHandler) Serve(ctx Context) error {
 		c.writing.Unlock()
 	}
 	if !h.NoShared {
-		c.pool.Release()
+		c.pool.PutBuffer(buf)
 	}
 	return err
 }

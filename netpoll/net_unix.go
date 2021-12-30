@@ -1,3 +1,6 @@
+// Copyright (c) 2020 Meng Huang (mhboy@outlook.com)
+// This package is licensed under a MIT license that can be found in the LICENSE file.
+
 //go:build linux || darwin || dragonfly || freebsd || netbsd || openbsd
 // +build linux darwin dragonfly freebsd netbsd openbsd
 
@@ -5,6 +8,10 @@ package netpoll
 
 import (
 	"errors"
+	"github.com/hslam/buffer"
+	"github.com/hslam/scheduler"
+	"github.com/hslam/sendfile"
+	"github.com/hslam/splice"
 	"io"
 	"net"
 	"os"
@@ -13,11 +20,6 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-
-	"github.com/hslam/scheduler"
-	"github.com/hslam/sendfile"
-	"github.com/hslam/splice"
-	"github.com/sunvim/utils/linear_ac"
 )
 
 const (
@@ -701,11 +703,9 @@ func genericReadFrom(w io.Writer, r io.Reader, remain int64) (n int64, err error
 	} else if remain > bufferSize {
 		remain = bufferSize
 	}
-	var buf []byte
-	pool := linear_ac.NewLinearAc()
-	pool.NewSlice(&buf, 0, int(remain))
-	defer pool.Release()
-
+	pool := buffer.AssignPool(int(remain))
+	buf := pool.GetBuffer(int(remain))
+	defer pool.PutBuffer(buf)
 	var nr int
 	nr, err = r.Read(buf)
 	if err != nil {
