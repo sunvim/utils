@@ -8,6 +8,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/oxtoacart/bpool"
 )
 
 func TestNewHandler(t *testing.T) {
@@ -68,9 +70,7 @@ func TestConnHandler(t *testing.T) {
 
 func TestDataHandler(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     false,
-		BufferSize: 0,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 	}
 	_, err := handler.Upgrade(&conn{})
 	if err != ErrHandlerFunc {

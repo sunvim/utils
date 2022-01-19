@@ -5,9 +5,10 @@ package netpoll
 
 import (
 	"errors"
-	"github.com/hslam/buffer"
 	"net"
 	"sync"
+
+	"github.com/oxtoacart/bpool"
 )
 
 // ErrHandlerFunc is the error when the HandlerFunc is nil
@@ -71,16 +72,8 @@ func (h *ConnHandler) Serve(ctx Context) error {
 
 // DataHandler implements the Handler interface.
 type DataHandler struct {
-	// NoShared disables the DataHandler to use the buffer pool for high performance.
-	// Default NoShared is false to use the buffer pool for low memory usage.
-	NoShared bool
-	// NoCopy returns the bytes underlying buffer when NoCopy is true,
-	// The bytes returned is shared by all invocations of Read, so do not modify it.
-	// Default NoCopy is false to make a copy of data for every invocations of Read.
-	NoCopy bool
-	// BufferSize represents the buffer size.
-	BufferSize int
-	upgrade    func(net.Conn) (net.Conn, error)
+	Pool    *bpool.BytePool
+	upgrade func(net.Conn) (net.Conn, error)
 	// HandlerFunc is the data Serve function.
 	HandlerFunc func(req []byte) (res []byte)
 }
@@ -90,7 +83,7 @@ type context struct {
 	writing sync.Mutex
 	upgrade bool
 	conn    net.Conn
-	pool    *buffer.Pool
+	pool    *bpool.BytePool
 	buffer  []byte
 }
 
@@ -101,9 +94,6 @@ func (h *DataHandler) SetUpgrade(upgrade func(net.Conn) (net.Conn, error)) {
 
 // Upgrade sets the net.Conn to a Context.
 func (h *DataHandler) Upgrade(conn net.Conn) (Context, error) {
-	if h.BufferSize < 1 {
-		h.BufferSize = bufferSize
-	}
 	if h.HandlerFunc == nil {
 		return nil, ErrHandlerFunc
 	}
@@ -117,12 +107,7 @@ func (h *DataHandler) Upgrade(conn net.Conn) (Context, error) {
 			conn = c
 		}
 	}
-	var ctx = &context{upgrade: upgrade, conn: conn}
-	if h.NoShared {
-		ctx.buffer = make([]byte, h.BufferSize)
-	} else {
-		ctx.pool = buffer.AssignPool(h.BufferSize)
-	}
+	var ctx = &context{upgrade: upgrade, conn: conn, pool: h.Pool}
 	return ctx, nil
 }
 
@@ -134,11 +119,8 @@ func (h *DataHandler) Serve(ctx Context) error {
 	var err error
 	var buf []byte
 	var req []byte
-	if h.NoShared {
-		buf = c.buffer
-	} else {
-		buf = c.pool.GetBuffer(h.BufferSize)
-	}
+	buf = c.pool.Get()
+	defer c.pool.Put(buf)
 	if c.upgrade {
 		c.reading.Lock()
 	}
@@ -147,16 +129,9 @@ func (h *DataHandler) Serve(ctx Context) error {
 		c.reading.Unlock()
 	}
 	if err != nil {
-		if !h.NoShared {
-			c.pool.PutBuffer(buf)
-		}
 		return err
 	}
 	req = buf[:n]
-	if !h.NoCopy {
-		req = make([]byte, n)
-		copy(req, buf[:n])
-	}
 	res := h.HandlerFunc(req)
 	if c.upgrade {
 		c.writing.Lock()
@@ -165,8 +140,6 @@ func (h *DataHandler) Serve(ctx Context) error {
 	if c.upgrade {
 		c.writing.Unlock()
 	}
-	if !h.NoShared {
-		c.pool.PutBuffer(buf)
-	}
+	c.pool.Put(res)
 	return err
 }

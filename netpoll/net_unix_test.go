@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/oxtoacart/bpool"
 )
 
 func TestServerListenAndServe(t *testing.T) {
@@ -55,9 +57,7 @@ func TestServerServe(t *testing.T) {
 
 func TestServerPoll(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -88,9 +88,7 @@ func TestServerPoll(t *testing.T) {
 
 func TestServerClose(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -117,9 +115,7 @@ func TestServerClose(t *testing.T) {
 
 func TestServerNumCPU(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -148,9 +144,7 @@ func TestServerNumCPU(t *testing.T) {
 
 func TestServerTCPListener(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -171,9 +165,7 @@ func TestServerTCPListener(t *testing.T) {
 
 func TestServerUNIXListener(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -194,9 +186,7 @@ func TestServerUNIXListener(t *testing.T) {
 
 func TestTCPServer(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -245,9 +235,7 @@ func TestTCPServer(t *testing.T) {
 
 func TestUNIXServer(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -296,9 +284,7 @@ func TestOtherServer(t *testing.T) {
 		net.Listener
 	}
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -342,9 +328,7 @@ func TestOtherServer(t *testing.T) {
 
 func TestShared(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -388,9 +372,7 @@ func TestShared(t *testing.T) {
 
 func TestNoCopy(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -483,9 +465,7 @@ func TestWorker(t *testing.T) {
 
 func TestNoAsync(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -530,9 +510,7 @@ func TestNoAsync(t *testing.T) {
 
 func TestSharedWorkers(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -579,9 +557,7 @@ func TestSharedWorkers(t *testing.T) {
 
 func TestSharedWorkersPanic(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -606,9 +582,7 @@ func TestSharedWorkersPanic(t *testing.T) {
 
 func TestReschedule(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -669,9 +643,7 @@ func TestReschedule(t *testing.T) {
 
 func TestRescheduleDone(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return

@@ -9,13 +9,13 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/oxtoacart/bpool"
 )
 
 func TestListenAndServe(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -33,9 +33,7 @@ func TestListenAndServe(t *testing.T) {
 
 func TestServe(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   false,
-		NoCopy:     false,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
@@ -54,9 +52,7 @@ func TestServe(t *testing.T) {
 
 func TestNetServer(t *testing.T) {
 	var handler = &DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
