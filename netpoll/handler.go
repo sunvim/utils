@@ -7,8 +7,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-
-	"github.com/oxtoacart/bpool"
 )
 
 // ErrHandlerFunc is the error when the HandlerFunc is nil
@@ -70,9 +68,16 @@ func (h *ConnHandler) Serve(ctx Context) error {
 	return h.serve(ctx)
 }
 
+type BytePool interface {
+	Get() []byte
+	Put(b []byte)
+	NumPooled() int
+	Width() int
+}
+
 // DataHandler implements the Handler interface.
 type DataHandler struct {
-	Pool    *bpool.BytePool
+	Pool    BytePool
 	upgrade func(net.Conn) (net.Conn, error)
 	// HandlerFunc is the data Serve function.
 	HandlerFunc func(req []byte) (res []byte)
@@ -83,7 +88,7 @@ type context struct {
 	writing sync.Mutex
 	upgrade bool
 	conn    net.Conn
-	pool    *bpool.BytePool
+	pool    BytePool
 	buffer  []byte
 }
 

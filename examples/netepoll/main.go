@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/oxtoacart/bpool"
 	"github.com/rcrowley/go-metrics"
 	"github.com/sunvim/utils/netpoll"
 )
@@ -23,9 +24,7 @@ func main() {
 	}()
 
 	var handler = &netpoll.DataHandler{
-		NoShared:   true,
-		NoCopy:     true,
-		BufferSize: 1024,
+		Pool: bpool.NewBytePool(1024, 12*1024),
 		HandlerFunc: func(req []byte) (res []byte) {
 			res = req
 			return
