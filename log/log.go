@@ -15,7 +15,6 @@
 package log
 
 import (
-	"fmt"
 	stdlog "log"
 	"os"
 )
@@ -45,13 +44,13 @@ func (l Level) String() string {
 	default:
 		return ""
 	case LevelDebug:
-		return "[DBG]"
+		return "DBG"
 	case LevelError:
-		return "[ERR]"
+		return "ERR"
 	case LevelInfo:
-		return "[INF]"
+		return "INF"
 	case LevelFatal:
-		return "[FTL]"
+		return "FTL"
 	}
 }
 
@@ -62,7 +61,7 @@ var (
 	// default log level is info
 	level = LevelInfo
 
-	prefix = "[Slog]"
+	prefix = "Slog"
 )
 
 type defaultLogLogger struct{}
@@ -76,20 +75,22 @@ func (t *defaultLogLogger) Logf(format string, v ...interface{}) {
 }
 
 func init() {
-	switch os.Getenv("SLOG_LOG_LEVEL") {
-	case "debug":
-		level = LevelDebug
-	case "info":
-		level = LevelInfo
-	case "error":
-		level = LevelError
-	case "fatal":
-		level = LevelFatal
-	}
+	level = LevelType(os.Getenv("SLOG_LOG_LEVEL"))
 }
 
-func SetLogPrefix(logName string) {
-	prefix = logName
+func LevelType(level string) Level {
+	switch level {
+	default:
+		return LevelInfo
+	case "debug":
+		return LevelDebug
+	case "info":
+		return LevelInfo
+	case "error":
+		return LevelError
+	case "fatal":
+		return LevelFatal
+	}
 }
 
 // Log makes use of Logger
@@ -190,9 +191,4 @@ func GetLevel() Level {
 // SetPrefix sets a prefix for the logger
 func SetPrefix(p string) {
 	prefix = p
-}
-
-// Name sets service name
-func Name(name string) {
-	prefix = fmt.Sprintf("[%s]", name)
 }
