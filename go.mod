@@ -10,6 +10,7 @@ require (
 	github.com/hslam/splice v1.0.3
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
+	github.com/rs/zerolog v1.26.1
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/eapache/queue.v1 v1.1.0
 )
