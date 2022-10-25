@@ -102,7 +102,7 @@ func (f *osMMapFile) munmap() error {
 	if f.data == nil {
 		return nil
 	}
-	if err := munmap(f.data); err != nil {
+	if err := Munmap(f.data); err != nil {
 		return err
 	}
 	f.data = nil
@@ -110,19 +110,19 @@ func (f *osMMapFile) munmap() error {
 	return nil
 }
 
-func (f *osMMapFile) mmap(fileSize int64, mappingSize int64) error {
+func (f *osMMapFile) mmap(mappingSize int64) error {
 	if f.data != nil {
-		if err := munmap(f.data); err != nil {
+		if err := Munmap(f.data); err != nil {
 			return err
 		}
 	}
 
-	data, err := mmap(f.File, fileSize, mappingSize)
+	data, err := Mmap(f.File, mappingSize)
 	if err != nil {
 		return err
 	}
 
-	_ = madviceRandom(data)
+	_ = MadviceRandom(data)
 
 	f.data = data
 	return nil
@@ -147,7 +147,7 @@ func (f *osMMapFile) mremap() error {
 		mmapSize *= 2
 	}
 
-	if err := f.mmap(f.size, mmapSize); err != nil {
+	if err := f.mmap(mmapSize); err != nil {
 		return err
 	}
 

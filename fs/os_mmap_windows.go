@@ -1,4 +1,4 @@
-// +build windows
+//go:build windows
 
 package fs
 
@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-func mmap(f *os.File, fileSize int64, mappingSize int64) ([]byte, error) {
+func Mmap(f *os.File, fileSize int64, mappingSize int64) ([]byte, error) {
 	size := fileSize
 	low, high := uint32(size), uint32(size>>32)
 	fmap, err := syscall.CreateFileMapping(syscall.Handle(f.Fd()), nil, syscall.PAGE_READONLY, high, low, nil)
@@ -24,11 +24,11 @@ func mmap(f *os.File, fileSize int64, mappingSize int64) ([]byte, error) {
 	return data, nil
 }
 
-func munmap(data []byte) error {
+func Munmap(data []byte) error {
 	return syscall.UnmapViewOfFile(uintptr(unsafe.Pointer(&data[0])))
 }
 
-func madviceRandom(data []byte) error {
+func MadviceRandom(data []byte) error {
 	return nil
 }
 
