@@ -1,6 +1,5 @@
 package queue
 
-
 import (
 	"runtime"
 	"sync"
@@ -10,7 +9,7 @@ import (
 	"gopkg.in/eapache/queue.v1"
 )
 
-//Queue queue
+// Queue queue
 type Queue struct {
 	sync.Mutex
 	popable *sync.Cond
@@ -21,7 +20,7 @@ type Queue struct {
 	once    sync.Once
 }
 
-//New 创建
+// New
 func New() *Queue {
 	ch := &Queue{
 		buffer: queue.New(),
@@ -30,7 +29,7 @@ func New() *Queue {
 	return ch
 }
 
-//Pop 取出队列,（阻塞模式）
+// Pop
 func (q *Queue) Pop() (v interface{}) {
 	c := q.popable
 
@@ -41,7 +40,7 @@ func (q *Queue) Pop() (v interface{}) {
 		c.Wait()
 	}
 
-	if q.closed { //已关闭
+	if q.closed {
 		return
 	}
 
@@ -54,7 +53,7 @@ func (q *Queue) Pop() (v interface{}) {
 	return
 }
 
-// TryPop 试着取出队列（非阻塞模式）返回ok == false 表示空
+// TryPop
 func (q *Queue) TryPop() (v interface{}, ok bool) {
 	buffer := q.buffer
 
@@ -73,7 +72,7 @@ func (q *Queue) TryPop() (v interface{}, ok bool) {
 	return
 }
 
-// TryPopTimeout 试着取出队列（塞模式+timeout）返回ok == false 表示超时
+// TryPopTimeout
 func (q *Queue) TryPopTimeout(tm time.Duration) (v interface{}, ok bool) {
 	q.once.Do(func() {
 		q.cc = make(chan interface{}, 1)
@@ -96,7 +95,7 @@ func (q *Queue) TryPopTimeout(tm time.Duration) (v interface{}, ok bool) {
 	return
 }
 
-//Pop 取出队列,（阻塞模式）
+// Pop
 func (q *Queue) popChan(v *chan interface{}) {
 	c := q.popable
 
@@ -107,7 +106,7 @@ func (q *Queue) popChan(v *chan interface{}) {
 		c.Wait()
 	}
 
-	if q.closed { //已关闭
+	if q.closed {
 		*v <- nil
 		return
 	}
@@ -124,7 +123,7 @@ func (q *Queue) popChan(v *chan interface{}) {
 	return
 }
 
-// Push 插入队列，非阻塞
+// Push
 func (q *Queue) Push(v interface{}) {
 	q.Mutex.Lock()
 	defer q.Mutex.Unlock()
@@ -135,7 +134,7 @@ func (q *Queue) Push(v interface{}) {
 	}
 }
 
-// Len 获取队列长度
+// Len
 func (q *Queue) Len() int {
 	return (int)(atomic.LoadInt32(&q.count))
 }
@@ -148,7 +147,7 @@ func (q *Queue) Close() {
 	if !q.closed {
 		q.closed = true
 		atomic.StoreInt32(&q.count, 0)
-		q.popable.Broadcast() //广播
+		q.popable.Broadcast()
 	}
 }
 
@@ -157,13 +156,13 @@ func (q *Queue) IsClose() bool {
 	return q.closed
 }
 
-//Wait 等待队列消费完成
+// Wait
 func (q *Queue) Wait() {
 	for {
 		if q.closed || q.Len() == 0 {
 			break
 		}
 
-		runtime.Gosched() //出让时间片
+		runtime.Gosched()
 	}
 }

@@ -1,11 +1,11 @@
 package workpool
 
 import (
-	"sync"
-	"time"
-  "context"
+	"context"
 	"runtime"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/sunvim/utils/queue"
 )
@@ -16,16 +16,17 @@ type TaskHandler func() error
 // WorkPool serves incoming connections via a pool of workers
 type WorkPool struct {
 	closed       int32
-	isQueTask    int32         // Mark whether queue retrieval is task. 标记是否队列取出任务
+	isQueTask    int32         // Mark whether queue retrieval is task.
 	errChan      chan error    // error chan
 	timeout      time.Duration // max timeout
 	wg           sync.WaitGroup
 	task         chan TaskHandler
 	waitingQueue *queue.Queue
+	workerNum    int
 }
 
 // New new workpool and set the max number of concurrencies
-func New(max int) *WorkPool { // 注册工作池，并设置最大并发数
+func New(max int) *WorkPool {
 	if max < 1 {
 		max = 1
 	}
@@ -34,6 +35,7 @@ func New(max int) *WorkPool { // 注册工作池，并设置最大并发数
 		task:         make(chan TaskHandler, 2*max),
 		errChan:      make(chan error, 1),
 		waitingQueue: queue.New(),
+		workerNum:    max,
 	}
 
 	go p.loop(max)
@@ -41,21 +43,20 @@ func New(max int) *WorkPool { // 注册工作池，并设置最大并发数
 }
 
 // SetTimeout Setting timeout time
-func (p *WorkPool) SetTimeout(timeout time.Duration) { // 设置超时时间
+func (p *WorkPool) SetTimeout(timeout time.Duration) {
 	p.timeout = timeout
 }
 
 // Do Add to the workpool and return immediately
-func (p *WorkPool) Do(fn TaskHandler) { // 添加到工作池，并立即返回
-	if p.IsClosed() { // 已关闭
+func (p *WorkPool) Do(fn TaskHandler) {
+	if p.IsClosed() {
 		return
 	}
 	p.waitingQueue.Push(fn)
-	// p.task <- fn
 }
 
 // DoWait Add to the workpool and wait for execution to complete before returning
-func (p *WorkPool) DoWait(task TaskHandler) { // 添加到工作池，并等待执行完成之后再返回
+func (p *WorkPool) DoWait(task TaskHandler) {
 	if p.IsClosed() { // closed
 		return
 	}
@@ -69,22 +70,23 @@ func (p *WorkPool) DoWait(task TaskHandler) { // 添加到工作池，并等待�
 }
 
 // Wait Waiting for the worker thread to finish executing
-func (p *WorkPool) Wait() error { // 等待工作线程执行结束
-	p.waitingQueue.Wait()  // 等待队列结束
-	p.waitingQueue.Close() //
-	p.waitTask()           // wait que down
+func (p *WorkPool) Wait() error {
+	p.waitingQueue.Wait()
+	p.waitTask() // wait que down
 	close(p.task)
-	p.wg.Wait() // 等待结束
+	p.wg.Wait() // wait all task finished
 	select {
 	case err := <-p.errChan:
+		p.task = make(chan TaskHandler, p.workerNum*2)
 		return err
 	default:
+		p.task = make(chan TaskHandler, p.workerNum*2)
 		return nil
 	}
 }
 
 // IsDone Determine whether it is complete (non-blocking)
-func (p *WorkPool) IsDone() bool { // 判断是否完成 (非阻塞)
+func (p *WorkPool) IsDone() bool {
 	if p == nil || p.task == nil {
 		return true
 	}
@@ -93,7 +95,7 @@ func (p *WorkPool) IsDone() bool { // 判断是否完成 (非阻塞)
 }
 
 // IsClosed Has it been closed?
-func (p *WorkPool) IsClosed() bool { // 是否已经关闭
+func (p *WorkPool) IsClosed() bool {
 	if atomic.LoadInt32(&p.closed) == 1 { // closed
 		return true
 	}
@@ -121,11 +123,9 @@ func (p *WorkPool) startQueue() {
 	atomic.StoreInt32(&p.isQueTask, 0)
 }
 
-
-
 func (p *WorkPool) waitTask() {
 	for {
-		runtime.Gosched() // 出让时间片
+		runtime.Gosched()
 		if p.IsDone() {
 			if atomic.LoadInt32(&p.isQueTask) == 0 {
 				break
@@ -134,32 +134,28 @@ func (p *WorkPool) waitTask() {
 	}
 }
 
-
-
 func (p *WorkPool) loop(maxWorkersCount int) {
-	go p.startQueue() // Startup queue , 启动队列
+	go p.startQueue() // Startup queue
 
-	p.wg.Add(maxWorkersCount) // Maximum number of work cycles,最大的工作协程数
-	// Start Max workers, 启动max个worker
+	p.wg.Add(maxWorkersCount) // Maximum number of work cycles
+	// Start Max workers
 	for i := 0; i < maxWorkersCount; i++ {
 		go func() {
 			defer p.wg.Done()
-			// worker 开始干活
+
 			for wt := range p.task {
-				if wt == nil || atomic.LoadInt32(&p.closed) == 1 { // returns immediately,有err 立即返回
-					continue // It needs to be consumed before returning.需要先消费完了之后再返回，
+				if wt == nil || atomic.LoadInt32(&p.closed) == 1 { // returns immediately
+					continue // It needs to be consumed before returning.
 				}
 
 				closed := make(chan struct{}, 1)
-				// Set timeout, priority task timeout.有设置超时,优先task 的超时
+				// Set timeout, priority task timeout.
 				if p.timeout > 0 {
 					ct, cancel := context.WithTimeout(context.Background(), p.timeout)
 					go func() {
 						select {
 						case <-ct.Done():
 							p.errChan <- ct.Err()
-							// if atomic.LoadInt32(&p.closed) != 1 {
-							// mylog.Error(ct.Err())
 							atomic.StoreInt32(&p.closed, 1)
 							cancel()
 						case <-closed:
@@ -167,13 +163,11 @@ func (p *WorkPool) loop(maxWorkersCount int) {
 					}()
 				}
 
-				err := wt() // Points of Execution.真正执行的点
+				err := wt() // Points of Execution.
 				close(closed)
 				if err != nil {
 					select {
 					case p.errChan <- err:
-						// if atomic.LoadInt32(&p.closed) != 1 {
-						// mylog.Error(err)
 						atomic.StoreInt32(&p.closed, 1)
 					default:
 					}
@@ -182,5 +176,3 @@ func (p *WorkPool) loop(maxWorkersCount int) {
 		}()
 	}
 }
-
-
