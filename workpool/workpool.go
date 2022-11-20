@@ -72,14 +72,17 @@ func (p *WorkPool) DoWait(task TaskHandler) {
 // Wait Waiting for the worker thread to finish executing
 func (p *WorkPool) Wait() error {
 	p.waitingQueue.Wait()
+	p.waitingQueue.Close()
 	p.waitTask() // wait que down
 	close(p.task)
 	p.wg.Wait() // wait all task finished
 	select {
 	case err := <-p.errChan:
+		p.waitingQueue = queue.New()
 		p.task = make(chan TaskHandler, p.workerNum*2)
 		return err
 	default:
+		p.waitingQueue = queue.New()
 		p.task = make(chan TaskHandler, p.workerNum*2)
 		return nil
 	}
