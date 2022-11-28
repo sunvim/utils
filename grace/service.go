@@ -39,6 +39,7 @@ func (s *serv) Wait() {
 		}
 		time.Sleep(100 * time.Millisecond)
 		log.Println("all services exited totally.")
+		os.Exit(0)
 	}
 }
 
