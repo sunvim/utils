@@ -279,8 +279,8 @@ func TestBindAc(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	for i := 0; i < 1000; i++ {
+		wg.Add(1)
 		go func() {
-			wg.Add(1)
 
 			ac := BindNew()
 			defer ac.Release()

@@ -9,7 +9,7 @@ import (
 )
 
 func Mmap(f *os.File, mappingSize int64) ([]byte, error) {
-	p, err := syscall.Mmap(int(f.Fd()), 0, int(mappingSize), syscall.PROT_READ, syscall.MAP_SHARED|syscall.MAP_POPULATE)
+	p, err := syscall.Mmap(int(f.Fd()), 0, int(mappingSize), syscall.PROT_READ, syscall.MAP_SHARED)
 	return p, err
 }
 

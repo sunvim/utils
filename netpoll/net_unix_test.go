@@ -194,7 +194,12 @@ func TestTCPServer(t *testing.T) {
 	}
 	handler.SetUpgrade(func(c net.Conn) (net.Conn, error) {
 		var u = &conn{}
-		*u = *(c.(*conn))
+		*u = conn{
+			fd:      c.(*conn).fd,
+			closed:  c.(*conn).closed,
+			context: c.(*conn).context,
+			// Copy other fields explicitly, excluding sync.Mutex
+		}
 		return u, nil
 	})
 	server := &Server{

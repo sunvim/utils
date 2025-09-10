@@ -1,0 +1,19 @@
+go 1.24.7
+
+use (
+	./cachem
+	./errors
+	./fs
+	./grace
+	./linear_ac
+	./logger
+	./mmap
+	./netpoll
+	./patricia
+	./priorityqueue
+	./queue
+	./radix
+	./stringsbank
+	./tools
+	./typepool
+)

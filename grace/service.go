@@ -52,7 +52,7 @@ func (s *serv) RegisterService(name string, fn func(context.Context) error) {
 }
 
 func New(ctx context.Context) (context.Context, Service) {
-	stopChan := make(chan os.Signal)
+	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	ctxLocal, cancel := context.WithCancel(ctx)
 	return ctxLocal, &serv{

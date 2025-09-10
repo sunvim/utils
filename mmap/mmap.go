@@ -1,15 +1,14 @@
 package mmap
 
 import (
-	"reflect"
 	"syscall"
+	"unsafe"
 )
 
-func Alloc(eltsize uintptr, size int) (reflect.SliceHeader, error) {
+func Alloc(eltsize uintptr, size int) ([]byte, error) {
 	var errno syscall.Errno
-	var slice reflect.SliceHeader
 	fd := -1
-	slice.Data, _, errno = syscall.Syscall6(
+	data, _, errno := syscall.Syscall6(
 		syscall.SYS_MMAP,
 		0, // address
 		eltsize*uintptr(size),
@@ -18,18 +17,17 @@ func Alloc(eltsize uintptr, size int) (reflect.SliceHeader, error) {
 		uintptr(fd), // No file descriptor
 		0,           // offset
 	)
-	slice.Cap = size
 
-	var err error
 	if errno != 0 {
-		err = errno
+		return nil, errno
 	}
-	return slice, err
+
+	return unsafe.Slice((*byte)(unsafe.Pointer(data)), size*int(eltsize)), nil
 }
 
 // Free releases resources allocated via Alloc
-func Free(slice reflect.SliceHeader, eltsize uintptr) error {
-	_, _, errno := syscall.Syscall(syscall.SYS_MUNMAP, slice.Data, eltsize*uintptr(slice.Cap), 0)
+func Free(data unsafe.Pointer, size uintptr) error {
+	_, _, errno := syscall.Syscall(syscall.SYS_MUNMAP, uintptr(data), size, 0)
 	if errno != 0 {
 		return errno
 	}
