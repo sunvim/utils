@@ -3,6 +3,7 @@ go 1.24.7
 use (
 	./cachem
 	./errors
+	./examples
 	./fs
 	./grace
 	./linear_ac
